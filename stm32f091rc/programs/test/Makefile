@@ -28,10 +28,10 @@ SIZE    = arm-none-eabi-size
 ##########        Copies $(TARGET).bin to mounted NUCLEO        ##########
 ##########------------------------------------------------------##########
 ## Set microcontroller variables
-## Full name
+## Full name (info only)
 MCU   := $(shell echo $(notdir $(wildcard $(LIBDIR)/*.ld)) | cut -c 1-11)
-## Family name
-MCU_F := $(shell echo $(notdir $(wildcard $(LIBDIR)/*.c))  | cut -c 8-16)
+## Family name (info only)
+MCU_F := $(shell echo $(notdir $(wildcard $(LIBDIR)/system_*.c))  | cut -c 8-16)
 ## Name as found in main family header
 MCU_D := $(shell echo $(notdir $(wildcard $(LIBDIR)/*.s))  | cut -c 9-19)
 ## Modify MCU_D to usable form
