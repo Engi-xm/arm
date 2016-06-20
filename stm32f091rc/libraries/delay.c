@@ -11,7 +11,7 @@ static void systick_start() {
 
 
 void init_delay() {
-	SysTick->LOAD = 8;
+	SysTick->LOAD = 48;
 	SysTick->CTRL |= SysTick_CTRL_CLKSOURCE_Msk;
 }
 
