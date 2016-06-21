@@ -29,11 +29,11 @@ SIZE    = arm-none-eabi-size
 ##########------------------------------------------------------##########
 ## Set microcontroller variables
 ## Full name (info only)
-MCU   := $(shell echo $(notdir $(wildcard $(LIBDIR)/*.ld)) | cut -c 1-11)
+MCU   := $(shell echo $(notdir $(wildcard $(LIBDIR)/*.ld))       | cut -c 1-11)
 ## Family name (info only)
-MCU_F := $(shell echo $(notdir $(wildcard $(LIBDIR)/system_*.c))  | cut -c 8-16)
+MCU_F := $(shell echo $(notdir $(wildcard $(LIBDIR)/system_*.c)) | cut -c 8-16)
 ## Name as found in main family header
-MCU_D := $(shell echo $(notdir $(wildcard $(LIBDIR)/*.s))  | cut -c 9-19)
+MCU_D := $(shell echo $(notdir $(wildcard $(LIBDIR)/*.s))        | cut -c 9-19)
 ## Modify MCU_D to usable form
 MCU_D_UC  := $(shell echo $(MCU_D) | tr '[:lower:]' '[:upper:]')
 MCU_D_MOD := $(subst X,x,$(MCU_D_UC))
@@ -66,7 +66,6 @@ LDFLAGS += -mcpu=cortex-$(CORTEX)
 LDFLAGS += -T$(LINKER)
 
 ## Set rules
-## TODO: write dedicated rule for *.s files
 ## Default target
 all: $(TARGET).bin
 	@ls
@@ -76,13 +75,16 @@ $(TARGET).bin: $(TARGET).elf
 ## Link objects to .elf file
 $(TARGET).elf: $(OBJS)
 	@$(LD) $(LDFLAGS) $(OBJS) -o $@
-## Compile sources to objects
+## Compile sources (C) to objects
 %.o: %.c
+	@$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@
+## Compile sources (assembly) to objects
+%.o: %.s
 	@$(CC) $(CFLAGS) $(CPPFLAGS) $< -o $@
 ## Set phony targets
 .PHONY: all flash debug clean squeaky_clean
 
-#Convenience rules
+## Convenience rules
 ## Copy binary to microcontroller
 flash: $(TARGET).bin
 	@cp $< $(MCUDIR)/
