@@ -6,8 +6,6 @@ LIBDIR = ../../libraries
 ## Set controller path
 ## NOTE: might not work if there's more than 1 folder in /media/
 MCUDIR = /media/*/NUCLEO
-## Set Cortex version
-CORTEX = m0
 
 ##########------------------------------------------------------##########
 ##########                  Program Locations                   ##########
@@ -37,6 +35,9 @@ MCU_D := $(shell echo $(notdir $(wildcard $(LIBDIR)/*.s))        | cut -c 9-19)
 ## Modify MCU_D to usable form
 MCU_D_UC  := $(shell echo $(MCU_D) | tr '[:lower:]' '[:upper:]')
 MCU_D_MOD := $(subst X,x,$(MCU_D_UC))
+
+## Set cortex name
+CORTEX = $(shell echo $(word 2, $(notdir $(wildcard $(LIBDIR)/core_*.h))) | cut -c 7-8)
 
 ## Set TARGET to enclosing directory name
 TARGET = $(lastword $(subst /, ,$(CURDIR)))
