@@ -8,7 +8,7 @@ void init_usart2(uint16_t baud);
 void usart2_send_byte(uint8_t data);
 void usart2_stop_tx(void);
 void usart2_send(uint8_t* data_ptr);
-void peek(uint8_t* ptr);
+uint8_t peek(uint8_t* ptr);
 
 volatile uint8_t* usart2_tx_buf_ptr;
 volatile uint8_t tx_busy = 0;
@@ -19,7 +19,7 @@ void USART2_IRQHandler(void) {
 			USART2->CR1 |= USART_CR1_TCIE; // enable TC interrupt
 			USART2->CR1 &= ~USART_CR1_TXEIE; // disable txe interrupt
 		} else {
-			usart2_send_byte((*usart2_tx_buf_ptr)++); // send byte and increment
+			usart2_send_byte(*(usart2_tx_buf_ptr++)); // send byte and increment
 		}
 	}
 
@@ -83,5 +83,5 @@ void usart2_send(uint8_t* data_ptr) {
 }
 
 uint8_t peek(uint8_t* ptr) {
-	return *(ptr++); // return incremented pointer
+	return *(++ptr); // return incremented pointer
 }
