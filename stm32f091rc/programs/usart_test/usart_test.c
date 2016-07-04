@@ -8,6 +8,7 @@ void init_usart2(uint16_t baud);
 void usart2_send_byte(uint8_t data);
 void usart2_stop_tx(void);
 void usart2_send(uint8_t* data_ptr);
+void peek(uint8_t* ptr);
 
 volatile uint8_t* usart2_tx_buf_ptr;
 volatile uint8_t tx_busy = 0;
