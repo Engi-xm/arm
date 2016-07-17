@@ -2,9 +2,11 @@
 #include "usart.h"
 
 volatile uint8_t usart2_rx_busy = 0; // status flag
+volatile uint8_t usart2_tx_busy = 0; // status flag
 
 void DMA1_Ch2_3_DMA2_Ch1_2_IRQHandler(void) {
 	if((DMA2->ISR & DMA_ISR_TCIF1) == DMA_ISR_TCIF1) { // ch1 tc flag
+		usart2_tx_busy = 0; // set to available
 		DMA2_Channel1->CCR &= ~(DMA_CCR_EN); // turn off periph
 		DMA2->IFCR |= DMA_IFCR_CTCIF1; // clear interrupt flag
 	}
@@ -55,6 +57,8 @@ void init_usart2(uint16_t baud) {
 void usart2_send(uint8_t* data_ptr) {
 	uint16_t count = 0;
 
+	while(usart2_tx_busy); // check if available
+	usart2_tx_busy = 1; // set to busy
 	while(*(data_ptr + count) != USART_DELIMITER) {
 		count++;
 	}
