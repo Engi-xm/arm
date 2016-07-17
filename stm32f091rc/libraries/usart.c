@@ -27,7 +27,7 @@ void init_usart2(uint16_t baud) {
 	
 	// init dma
     RCC->AHBENR |= RCC_AHBENR_DMA2EN; // start clock
-	DMA2->CSELR |= 0x99U; // set channel selection
+	DMA2->CSELR |= (DMA2_CSELR_CH1_USART2_TX | DMA2_CSELR_CH2_USART2_RX); // set channel selection
 	// init channel1
 	DMA2_Channel1->CCR |= DMA_CCR_PL_1; // set high priority
 	DMA2_Channel1->CCR |= DMA_CCR_MINC; // set memory increment mode
