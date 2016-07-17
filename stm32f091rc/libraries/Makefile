@@ -54,6 +54,7 @@ OBJS += $(filter %.o, $(SOURCES:.s=.o))
 ## Set compiler flags
 CFLAGS    = -Wall -mlittle-endian -mthumb -Os -c
 CFLAGS   += -mcpu=cortex-$(CORTEX)
+CFLAGS   += -std=c99
 CPPFLAGS  = -D$(MCU_D_MOD)
 CPPFLAGS += -I$(LIBDIR)
 
