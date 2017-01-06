@@ -23,12 +23,12 @@ void init_usart2(uint16_t baud) {
 	NVIC_SetPriority(DMA1_Ch2_3_DMA2_Ch1_2_IRQn, 2);
 	
 	// init pins
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // start clock
-    GPIOA->MODER |= (GPIO_MODER_MODER3_1 | GPIO_MODER_MODER2_1); // set af mode
-    GPIOA->AFR[0] |= 0x1100U; // set af1
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // start clock
+	GPIOA->MODER |= (GPIO_MODER_MODER3_1 | GPIO_MODER_MODER2_1); // set af mode
+	GPIOA->AFR[0] |= 0x1100U; // set af1
 	
 	// init dma
-    RCC->AHBENR |= RCC_AHBENR_DMA2EN; // start clock
+	RCC->AHBENR |= RCC_AHBENR_DMA2EN; // start clock
 	DMA2->CSELR |= (DMA2_CSELR_CH1_USART2_TX | DMA2_CSELR_CH2_USART2_RX); // set channel selection
 	// init channel1
 	DMA2_Channel1->CCR |= DMA_CCR_PL_1; // set high priority
@@ -47,11 +47,11 @@ void init_usart2(uint16_t baud) {
 	DMA2_Channel2->CCR &= ~(DMA_CCR_PSIZE); // set 8bit periph size
 	DMA2_Channel2->CPAR = (uint32_t)&(USART2->RDR); // set periph address
 	
-    // init usart
-    RCC->APB1ENR |= RCC_APB1ENR_USART2EN; // start clock
-    USART2->BRR = SystemCoreClock / baud; // set baud rate
-    USART2->CR3 |= (USART_CR3_DMAT | USART_CR3_DMAR); // enable dma on tx/rx
-    USART2->CR1 |= (USART_CR1_TE | USART_CR1_RE | USART_CR1_UE); // enable periph
+	// init usart
+	RCC->APB1ENR |= RCC_APB1ENR_USART2EN; // start clock
+	USART2->BRR = SystemCoreClock / baud; // set baud rate
+	USART2->CR3 |= (USART_CR3_DMAT | USART_CR3_DMAR); // enable dma on tx/rx
+	USART2->CR1 |= (USART_CR1_TE | USART_CR1_RE | USART_CR1_UE); // enable periph
 }
 
 void usart2_send(uint8_t* data_ptr) {

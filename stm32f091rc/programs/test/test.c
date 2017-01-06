@@ -12,6 +12,7 @@ void init_tim6(void); // interrupt timer
 void init_leds(void);
 void init_pwm(void);
 void init_adc(void);
+void init_i2c(void);
 void read_adc(uint16_t* adc_values);
 void set_pwm(uint8_t i);
 void itoa(uint8_t* str, uint8_t len, uint32_t val);
@@ -26,6 +27,7 @@ int main() {
 	init_delay();
 	init_adc();
 	init_usart2(9600);
+	// init_i2c();
 	// init_tim6();
 	// init_pwm();
 	// init_tim3();
@@ -53,9 +55,9 @@ int main() {
 
 void init_leds(void) {
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // turn clock on
-	GPIOB->MODER |= 0x5555; // set 8 pins to output
-	GPIOB->OTYPER &= ~(0x11); // set to push-pull
-	GPIOB->OSPEEDR &= ~(0x1111); // set low speed
+	GPIOB->MODER |= 0x5555UL; // set 8 pins to output
+	GPIOB->OTYPER &= ~(0x11UL); // set to push-pull
+	GPIOB->OSPEEDR &= ~(0x1111UL); // set low speed
 }
 
 void init_adc(void) {
@@ -73,9 +75,9 @@ void init_adc(void) {
 	DMA2_Channel5->CCR |= DMA_CCR_CIRC; // turn on circular mode
 	DMA2_Channel5->CCR |= DMA_CCR_MSIZE_0; // set 16bit memory size
 	DMA2_Channel5->CCR |= DMA_CCR_PSIZE_0; // set 16bit periph size
-	DMA2_Channel5->CCR &= ~(DMA_CCR_DIR); // set read fron periph
+	DMA2_Channel5->CCR &= ~(DMA_CCR_DIR); // set read from periph
 	DMA2_Channel5->CPAR = (uint32_t)&(ADC1->DR); // set periph address
-	DMA2_Channel5->CNDTR = 0x2UL; // set to two channels
+	DMA2_Channel5->CNDTR = 0x2UL; // set to 2 channels
 
 	// init adc
 	RCC->APB2ENR |= RCC_APB2ENR_ADCEN; // turn clock on
@@ -94,6 +96,10 @@ void init_adc(void) {
 	ADC1->SMPR |= ADC_SMPR_SMP_2; // set sampling time
 }
 
+void init_i2c(void) {
+	
+}
+
 void init_pwm(void) {
 	// init timer
 	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; // start clock
@@ -110,7 +116,7 @@ void init_pwm(void) {
 	// init pin
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // start clock
 	GPIOB->MODER |= GPIO_MODER_MODER4_1; // set af mode
-	GPIOB->AFR[0] |= 0x10000U; // set af1
+	GPIOB->AFR[0] |= 0x10000UL; // set af1
 
 	// final init
 	TIM3->EGR |= TIM_EGR_UG; // generate update to load registers
