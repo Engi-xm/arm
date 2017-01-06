@@ -31,23 +31,23 @@ int main() {
 	// init_tim6();
 	// init_pwm();
 	// init_tim3();
- 	
- 	uint16_t adc_values[3];
- 	uint8_t adc_value_str[5];
- 	uint8_t new_line[3] = {'\n', '\r','\0'};
- 	uint8_t space[2] = {0x20,'\0'};
+	
+	uint16_t adc_values[3];
+	uint8_t adc_value_str[5];
+	uint8_t new_line[3] = {'\n', '\r','\0'};
+	uint8_t space[2] = {0x20,'\0'};
 
- 	while(1) {
- 		read_adc(adc_values);
- 		itoa(adc_value_str, 4, adc_values[0]);
- 		usart2_send(adc_value_str);
- 		usart2_send(space);
- 		itoa(adc_value_str, 4, adc_values[1]);
- 		usart2_send(adc_value_str);
- 		usart2_send(new_line);
- 		GPIOB->ODR = (adc_values[0] >> 4);
- 		_delay_ms(200);
- 	}
+	while(1) {
+		read_adc(adc_values);
+		itoa(adc_value_str, 4, adc_values[0]);
+		usart2_send(adc_value_str);
+		usart2_send(space);
+		itoa(adc_value_str, 4, adc_values[1]);
+		usart2_send(adc_value_str);
+		usart2_send(new_line);
+		GPIOB->ODR = (adc_values[0] >> 4);
+		_delay_ms(200);
+	}
 
 	return 0;
  
