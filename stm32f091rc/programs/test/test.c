@@ -1,56 +1,47 @@
 #include <stm32f0xx.h>
 #include <delay.h>
-#include <usart.h>
- 
-#define LED_PIN 6
-#define LED_ON() GPIOB->BSRR |= (1 << LED_PIN)
-#define LED_OFF() GPIOB->BSRR |= ((1 << LED_PIN) << 16)
-#define LED_TOGGLE() GPIOB->ODR ^= (1 << LED_PIN)
+// #include <usart.h>
 
-void init_tim3(void); // pwm timer
-void init_tim6(void); // interrupt timer
+#define I2C_DELIMITER '\0'
+#define LED_ON(led) GPIOB->BSRR |= (1 << led)
+#define LED_OFF(led) GPIOB->BSRR |= ((1 << led) << 16)
+#define LED_TOGGLE(led) GPIOB->ODR ^= (1 << led)
+
 void init_leds(void);
-void init_pwm(void);
+void init_i2c1(void);
+void i2c1_send(uint8_t slave_addr, uint8_t* data_ptr);
+// void i2c1_read(uint8_t slave_addr, uint8_t addr, uint8_t i, uint8_t* data_ptr);
 void init_adc(void);
-void init_i2c(void);
 void read_adc(uint16_t* adc_values);
+void init_tim3(void);
 void set_pwm(uint8_t i);
-void itoa(uint8_t* str, uint8_t len, uint32_t val);
 
-void TIM6_IRQHandler(void) {
-	LED_TOGGLE();
-	TIM6->SR &= ~TIM_SR_UIF; // clear flag
-}
+void itoa(uint8_t* str, uint8_t len, uint32_t val);
+uint8_t zeroes(uint32_t	reg);
+
+// void DMA1_Ch2_3_DMA2_Ch1_2_IRQHandler(void) {
+// 	if((DMA1->ISR & DMA_ISR_TCIF2) == DMA_ISR_TCIF2) { // ch2 tc flag
+// 		// i2c1_tx_busy = 0; // set to available
+// 		DMA1_Channel2->CCR &= ~(DMA_CCR_EN); // turn off periph
+// 		DMA1->IFCR |= DMA_IFCR_CTCIF2; // clear interrupt flag
+// 	}
+// 	if((DMA1->ISR & DMA_ISR_TCIF3) == DMA_ISR_TCIF3) { // ch3 tc flag
+// 		// i2c1_rx_busy = 0; // set to available
+// 		DMA1_Channel3->CCR &= ~(DMA_CCR_EN); // turn off periph
+// 		DMA1->IFCR |= DMA_IFCR_CTCIF3; // clear interrupt flag
+// 	}
+// }
 
 int main() {
 	init_leds();
 	init_delay();
-	init_adc();
-	init_usart2(9600);
-	// init_i2c();
-	// init_tim6();
-	// init_pwm();
-	// init_tim3();
-	
-	uint16_t adc_values[3];
-	uint8_t adc_value_str[5];
-	uint8_t new_line[3] = {'\n', '\r','\0'};
-	uint8_t space[2] = {0x20,'\0'};
 
 	while(1) {
-		read_adc(adc_values);
-		itoa(adc_value_str, 4, adc_values[0]);
-		usart2_send(adc_value_str);
-		usart2_send(space);
-		itoa(adc_value_str, 4, adc_values[1]);
-		usart2_send(adc_value_str);
-		usart2_send(new_line);
-		GPIOB->ODR = (adc_values[0] >> 4);
-		_delay_ms(200);
+		
 	}
 
 	return 0;
- 
+
 }
 
 void init_leds(void) {
@@ -58,6 +49,58 @@ void init_leds(void) {
 	GPIOB->MODER |= 0x5555UL; // set 8 pins to output
 	GPIOB->OTYPER &= ~(0x11UL); // set to push-pull
 	GPIOB->OSPEEDR &= ~(0x1111UL); // set low speed
+}
+
+void init_i2c1(void) {
+	// init dma interrupt
+	NVIC_EnableIRQ(DMA1_Ch2_3_DMA2_Ch1_2_IRQn);
+	NVIC_SetPriority(DMA1_Ch2_3_DMA2_Ch1_2_IRQn, 2);
+	
+	// init pins
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // start clock
+	GPIOB->MODER |= (GPIO_MODER_MODER9_1 | GPIO_MODER_MODER8_1); // set af mode
+	GPIOB->AFR[1] |= 0x11U; // set af1
+	
+	// init dma
+	RCC->AHBENR |= RCC_AHBENR_DMA1EN; // start clock
+	DMA1->CSELR |= (DMA1_CSELR_CH2_I2C1_TX | DMA1_CSELR_CH3_I2C1_RX); // set channel selection
+	// init channel2
+	DMA1_Channel2->CCR |= DMA_CCR_PL_1; // set high priority
+	DMA1_Channel2->CCR |= DMA_CCR_MINC; // set memory increment mode
+	DMA1_Channel2->CCR |= DMA_CCR_DIR; // set read from memory
+	DMA1_Channel2->CCR |= DMA_CCR_TCIE; // turn on tc interrupt
+	DMA1_Channel2->CCR &= ~(DMA_CCR_MSIZE); // set 8bit memory size
+	DMA1_Channel2->CCR &= ~(DMA_CCR_PSIZE); // set 8bit periph size
+	DMA1_Channel2->CPAR = (uint32_t)&(I2C1->TXDR); // set periph address
+	// init channel3
+	DMA1_Channel3->CCR |= DMA_CCR_PL_1; // set high priority
+	DMA1_Channel3->CCR |= DMA_CCR_MINC; // set memory increment mode
+	DMA1_Channel3->CCR |= DMA_CCR_TCIE; // turn on tc interrupt
+	DMA1_Channel3->CCR &= ~(DMA_CCR_DIR); // set read from periph
+	DMA1_Channel3->CCR &= ~(DMA_CCR_MSIZE); // set 8bit memory size
+	DMA1_Channel3->CCR &= ~(DMA_CCR_PSIZE); // set 8bit periph size
+	DMA1_Channel3->CPAR = (uint32_t)&(I2C1->RXDR); // set periph address
+	
+	// init i2c1
+	RCC->APB1ENR |= RCC_APB1ENR_I2C1EN; // start clock
+	I2C1->TIMINGR = 0x0; // set timing register
+	I2C1->CR1 |= (I2C_CR1_TXDMAEN | I2C_CR1_RXDMAEN); // enable dma on tx/rx
+	I2C1->CR2 |= I2C_CR2_AUTOEND; // enable autoend
+	I2C1->CR1 |= I2C_CR1_PE; // enable periph
+}
+
+void i2c1_send(uint8_t slave_addr, uint8_t* data_ptr) {
+	uint8_t count = 0;
+
+	while(*(data_ptr + count) != I2C_DELIMITER) {
+		count++;
+	}
+	I2C1->CR2 &= ~(I2C_CR2_SADD); // clear address
+	I2C1->CR2 |= (slave_addr << 1); // set slave address
+	I2C1->CR2 |= (count << 16); // set number of bytes to send
+
+	DMA1_Channel2->CMAR = (uint32_t)data_ptr; // set memory address
+	DMA1_Channel2->CCR |= DMA_CCR_EN; // turn on perpiph
 }
 
 void init_adc(void) {
@@ -96,41 +139,11 @@ void init_adc(void) {
 	ADC1->SMPR |= ADC_SMPR_SMP_2; // set sampling time
 }
 
-void init_i2c(void) {
-	
-}
-
-void init_pwm(void) {
-	// init timer
-	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; // start clock
-	TIM3->CR1 |= TIM_CR1_ARPE; // enable preload
-	TIM3->PSC = 480 - 1; // 100kHz
-	TIM3->ARR = 100 - 1; // number of steps
-	TIM3->CCR1 = 80; // duty cycle
-
-	// init output
-	TIM3->CCMR1 |= (TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1); // set pwm mode 1
-	TIM3->CCMR1 |= TIM_CCMR1_OC1PE; // enable preload
-	TIM3->CCER |= TIM_CCER_CC1E; // enable output
-
-	// init pin
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // start clock
-	GPIOB->MODER |= GPIO_MODER_MODER4_1; // set af mode
-	GPIOB->AFR[0] |= 0x10000UL; // set af1
-
-	// final init
-	TIM3->EGR |= TIM_EGR_UG; // generate update to load registers
-	TIM3->CR1 |= TIM_CR1_CEN; // start timer
-}
-
-void init_tim6(void) {
-	NVIC_EnableIRQ(TIM6_IRQn);
-	NVIC_SetPriority(TIM6_IRQn, 2);
-	RCC->APB1ENR |= RCC_APB1ENR_TIM6EN; // turn clock on
-	TIM6->DIER |= TIM_DIER_UIE; // turn interrupts on
-	TIM6->PSC = 48000 - 1; // set prescaller 
-	TIM6->ARR = 500 - 1; // set limit
-	TIM6->CR1 |= (TIM_CR1_CEN | TIM_CR1_URS); // turn on periph
+void read_adc(uint16_t* adc_values) {
+	while((ADC1->CR & ADC_CR_ADSTART) == ADC_CR_ADSTART); // check if available
+	DMA2_Channel5->CMAR = (uint32_t)adc_values; // set memory address
+	DMA2_Channel5->CCR |= DMA_CCR_EN; // enable periph
+	ADC1->CR |= ADC_CR_ADSTART; // start conversion
 }
 
 void init_tim3(void) {
@@ -148,17 +161,24 @@ void set_pwm(uint8_t i) {
 	TIM3->CCR1 = i;
 }
 
-void read_adc(uint16_t* adc_values) {
-	while((ADC1->CR & ADC_CR_ADSTART) == ADC_CR_ADSTART); // check if available
-	DMA2_Channel5->CMAR = (uint32_t)adc_values; // set memory address
-	DMA2_Channel5->CCR |= DMA_CCR_EN; // enable periph
-	ADC1->CR |= ADC_CR_ADSTART; // start conversion
-}
-
 void itoa(uint8_t* str, uint8_t len, uint32_t val) {
 	for(uint8_t i = 1; i <= len; i++) {
 		str[len - i] = (uint8_t)((val % 10UL) + '0'); // set char
 		val /= 10; // cycle
 	}
 	str[len] = '\0'; // close string
+}
+
+uint8_t zeroes(uint32_t reg) {
+	uint8_t count = 0;
+	
+	while(reg != 0) {
+		if (reg & 1) {
+			break;
+		} else {
+			count++;
+			reg = reg >> 1;
+		}
+	}
+	return count;
 }
