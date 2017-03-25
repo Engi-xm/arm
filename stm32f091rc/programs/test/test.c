@@ -34,16 +34,16 @@ void DMA1_Ch2_3_DMA2_Ch1_2_IRQHandler(void) {
 	}
 }
 
-void I2C1_IRQHandler(void) {
-	LED_TOGGLE(6);
-	if((I2C1->ISR & I2C_ISR_NACKF) == I2C_ISR_NACKF) {
-		LED_TOGGLE(5);
-		I2C1->ICR |= I2C_ICR_NACKCF;
-	}
-	if((I2C1->ISR & I2C_ISR_TXIS) == I2C_ISR_TXIS) {
-		I2C1->TXDR = *i2c_data_ptr;
-	}
-}
+// void I2C1_IRQHandler(void) {
+// 	LED_TOGGLE(6);
+// 	if((I2C1->ISR & I2C_ISR_NACKF) == I2C_ISR_NACKF) {
+// 		LED_TOGGLE(5);
+// 		I2C1->ICR |= I2C_ICR_NACKCF;
+// 	}
+// 	if((I2C1->ISR & I2C_ISR_TXIS) == I2C_ISR_TXIS) {
+// 		I2C1->TXDR = *i2c_data_ptr;
+// 	}
+// }
 
 int main() {
 	init_leds();
@@ -70,10 +70,10 @@ void init_leds(void) {
 
 void init_i2c1(void) {
 	// init dma interrupt
-	// NVIC_EnableIRQ(DMA1_Ch2_3_DMA2_Ch1_2_IRQn);
-	// NVIC_SetPriority(DMA1_Ch2_3_DMA2_Ch1_2_IRQn, 2);
-	NVIC_EnableIRQ(I2C1_IRQn);
-	NVIC_SetPriority(I2C1_IRQn, 2);
+	NVIC_EnableIRQ(DMA1_Ch2_3_DMA2_Ch1_2_IRQn);
+	NVIC_SetPriority(DMA1_Ch2_3_DMA2_Ch1_2_IRQn, 2);
+	// NVIC_EnableIRQ(I2C1_IRQn);
+	// NVIC_SetPriority(I2C1_IRQn, 2);
 	
 	// init pins
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN; // start clock
@@ -82,16 +82,16 @@ void init_i2c1(void) {
 	GPIOB->PUPDR |= (GPIO_PUPDR_PUPDR9_0 | GPIO_PUPDR_PUPDR8_0); // set pull ups
 	
 	// init dma
-	// RCC->AHBENR |= RCC_AHBENR_DMA1EN; // start clock
-	// DMA1->CSELR |= (DMA1_CSELR_CH2_I2C1_TX /*| DMA1_CSELR_CH3_I2C1_RX*/); // set channel selection
-	// // init channel2
-	// DMA1_Channel2->CCR |= DMA_CCR_PL_1; // set high priority
-	// DMA1_Channel2->CCR |= DMA_CCR_MINC; // set memory increment mode
-	// DMA1_Channel2->CCR |= DMA_CCR_DIR; // set read from memory
-	// DMA1_Channel2->CCR |= DMA_CCR_TCIE; // turn on tc interrupt
-	// DMA1_Channel2->CCR &= ~(DMA_CCR_MSIZE); // set 8bit memory size
-	// DMA1_Channel2->CCR &= ~(DMA_CCR_PSIZE); // set 8bit periph size
-	// DMA1_Channel2->CPAR = (uint32_t)&(I2C1->TXDR); // set periph address
+	RCC->AHBENR |= RCC_AHBENR_DMA1EN; // start clock
+	DMA1->CSELR |= (DMA1_CSELR_CH2_I2C1_TX /*| DMA1_CSELR_CH3_I2C1_RX*/); // set channel selection
+	// init channel2
+	DMA1_Channel2->CCR |= DMA_CCR_PL_1; // set high priority
+	DMA1_Channel2->CCR |= DMA_CCR_MINC; // set memory increment mode
+	DMA1_Channel2->CCR |= DMA_CCR_DIR; // set read from memory
+	DMA1_Channel2->CCR |= DMA_CCR_TCIE; // turn on tc interrupt
+	DMA1_Channel2->CCR &= ~(DMA_CCR_MSIZE); // set 8bit memory size
+	DMA1_Channel2->CCR &= ~(DMA_CCR_PSIZE); // set 8bit periph size
+	DMA1_Channel2->CPAR = (uint32_t)&(I2C1->TXDR); // set periph address
 	// // init channel3
 	// DMA1_Channel3->CCR |= DMA_CCR_PL_1; // set high priority
 	// DMA1_Channel3->CCR |= DMA_CCR_MINC; // set memory increment mode
@@ -105,14 +105,14 @@ void init_i2c1(void) {
 	RCC->CFGR3 |= RCC_CFGR3_I2C1SW_SYSCLK; // select SysClock as clock source
 	RCC->APB1ENR |= RCC_APB1ENR_I2C1EN; // start clock
 	I2C1->TIMINGR = (uint32_t)0x10905F86; // set timing register (Sm 100kHz)
-	// I2C1->CR1 |= (I2C_CR1_TXDMAEN /*| I2C_CR1_RXDMAEN*/); // enable dma on tx/rx
-	I2C1->CR1 |= (I2C_CR1_NACKIE | I2C_CR1_TXIE); // enable tx and nack interrupt
+	I2C1->CR1 |= (I2C_CR1_TXDMAEN /*| I2C_CR1_RXDMAEN*/); // enable dma on tx/rx
+	// I2C1->CR1 |= (I2C_CR1_NACKIE | I2C_CR1_TXIE); // enable tx and nack interrupt
 	I2C1->CR1 |= I2C_CR1_PE; // enable periph
 }
 
 void i2c1_send(uint8_t slave_addr, uint8_t* data_ptr) {
 	uint8_t count = 0;
-	i2c_data_ptr = data_ptr;
+	// i2c_data_ptr = data_ptr;
 
 	I2C1->CR2 &= ~(I2C_CR2_RD_WRN); // set write direction
 	while(*(data_ptr + count) != I2C_DELIMITER) {
@@ -125,8 +125,8 @@ void i2c1_send(uint8_t slave_addr, uint8_t* data_ptr) {
 	I2C1->CR2 |= (count << 16); // set number of bytes to send
 	// DMA2_Channel1->CNDTR = count; // set number of bytes to send
 
-	// DMA1_Channel2->CMAR = (uint32_t)data_ptr; // set memory address
-	// DMA1_Channel2->CCR |= DMA_CCR_EN; // turn on perpiph
+	DMA1_Channel2->CMAR = (uint32_t)data_ptr; // set memory address
+	DMA1_Channel2->CCR |= DMA_CCR_EN; // turn on perpiph
 
 	I2C1->CR2 |= I2C_CR2_START; // start transmition
 	LED_TOGGLE(1);
