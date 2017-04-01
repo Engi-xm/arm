@@ -30,20 +30,20 @@ void DMA1_Ch2_3_DMA2_Ch1_2_IRQHandler(void) {
 		DMA1_Channel2->CCR &= ~(DMA_CCR_EN); // turn off periph
 		DMA1->IFCR |= DMA_IFCR_CTCIF2; // clear interrupt flag
 	}
-	if((DMA1->ISR & DMA_ISR_TCIF3) == DMA_ISR_TCIF3) { // ch3 tc flag
-		DMA1_Channel3->CCR &= ~(DMA_CCR_EN); // turn off periph
-		DMA1->IFCR |= DMA_IFCR_CTCIF3; // clear interrupt flag
-	}
+	// if((DMA1->ISR & DMA_ISR_TCIF3) == DMA_ISR_TCIF3) { // ch3 tc flag
+	// 	DMA1_Channel3->CCR &= ~(DMA_CCR_EN); // turn off periph
+	// 	DMA1->IFCR |= DMA_IFCR_CTCIF3; // clear interrupt flag
+	// }
 }
 
 void I2C1_IRQHandler(void) {
 	LED_TOGGLE(6);
 	if((I2C1->ISR & I2C_ISR_NACKF) == I2C_ISR_NACKF) {
-		LED_TOGGLE(5);
+		LED_ON(5);
 		I2C1->ICR |= I2C_ICR_NACKCF;
 	}
 	if((I2C1->ISR & I2C_ISR_TXIS) == I2C_ISR_TXIS) {
-		LED_ON(4);
+		LED_TOGGLE(4);
 		I2C1->TXDR = *i2c_data_ptr++;
 	}
 }
@@ -53,7 +53,7 @@ int main() {
 	init_delay();
 	init_i2c1();
 
-	uint8_t rtc_setup[] = {REG_ADDR_1, 0b01001000};
+	uint8_t rtc_setup[] = {REG_ADDR_1, 0b00010000};
 
 	i2c1_send(SLAVE_ADDR, rtc_setup);
 
