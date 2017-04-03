@@ -1,6 +1,6 @@
 #include <stm32f0xx.h>
 #include <delay.h>
-// #include <usart.h>
+#include <usart.h>
 
 #define I2C_DELIMITER '\n'
 #define LED_ON(led) GPIOB->BSRR |= (1 << led)
@@ -10,23 +10,28 @@
 #define REG_ADDR_1 0x0e
 #define REG_ADDR_2 0x00
 
+volatile uint8_t i2c1_rx_busy = 0; // status flag
+volatile uint8_t i2c1_tx_busy = 0; // status flag
+
 void init_leds(void);
 void init_i2c1(void);
-void i2c1_send(uint8_t slave_addr, uint8_t* data_ptr);
-void i2c1_read(uint8_t slave_addr, uint8_t addr, uint8_t count, uint8_t* data_ptr);
+void i2c1_send(uint8_t slave_addr, uint8_t addr, uint8_t* data_ptr);
+void i2c1_read(uint8_t slave_addr, uint8_t addr, uint8_t* data_ptr, uint8_t count);
 void init_adc(void);
 void read_adc(uint16_t* adc_values);
 void init_tim3(void);
 void set_pwm(uint8_t i);
 void itoa(uint8_t* str, uint8_t len, uint32_t val);
-uint8_t zeroes(uint32_t	reg);
+uint8_t zeroes(uint32_t reg);
 
 void DMA1_Ch2_3_DMA2_Ch1_2_IRQHandler(void) {
 	if((DMA1->ISR & DMA_ISR_TCIF2) == DMA_ISR_TCIF2) { // ch2 tc flag
+		i2c1_tx_busy = 0; // set to available
 		DMA1_Channel2->CCR &= ~(DMA_CCR_EN); // turn off periph
 		DMA1->IFCR |= DMA_IFCR_CTCIF2; // clear interrupt flag
 	}
 	if((DMA1->ISR & DMA_ISR_TCIF3) == DMA_ISR_TCIF3) { // ch3 tc flag
+		i2c1_rx_busy = 0; // set to available
 		DMA1_Channel3->CCR &= ~(DMA_CCR_EN); // turn off periph
 		DMA1->IFCR |= DMA_IFCR_CTCIF3; // clear interrupt flag
 	}
@@ -37,14 +42,14 @@ int main() {
 	init_delay();
 	init_i2c1();
 
-	uint8_t rtc_setup[] = {REG_ADDR_1, 0b00010000, '\n'};
+	uint8_t rtc_setup[] = {0b00010000, I2C_DELIMITER};
 	uint8_t read_data[5] = {0};
 
-	i2c1_send(SLAVE_ADDR, rtc_setup);
+	i2c1_send(SLAVE_ADDR, REG_ADDR_1, rtc_setup);
 
 	while(1) {
 		_delay_ms(200);
-		i2c1_read(SLAVE_ADDR, REG_ADDR_2, 1, read_data);
+		i2c1_read(SLAVE_ADDR, REG_ADDR_2, read_data, 2);
 		GPIOB->ODR = (read_data[0] >> 4) * 10 + (read_data[0] & 0x0f);
 	}
 
@@ -96,14 +101,21 @@ void init_i2c1(void) {
 	I2C1->CR1 |= (I2C_CR1_TXDMAEN | I2C_CR1_RXDMAEN); // enable dma on tx/rx
 }
 
-void i2c1_send(uint8_t slave_addr, uint8_t* data_ptr) {
+void i2c1_send(uint8_t slave_addr, uint8_t addr, uint8_t* data_ptr) {
 	uint8_t count = 0;
 
-	I2C1->CR2 &= ~(I2C_CR2_RD_WRN); // set write direction
+	while(i2c1_tx_busy); // check if available
+	i2c1_tx_busy = 1; // set to busy
 	while(*(data_ptr + count) != I2C_DELIMITER) { // count number of bytes to send
 		count++;
 	}
+	for(int8_t i = count; i >= 0; i--) { // shift data array
+		*(data_ptr + i + 1) = *(data_ptr + i);
+	}
+	*(data_ptr) = addr; // set register address
+	count ? : count++; // fix shitty programming
 
+	I2C1->CR2 &= ~(I2C_CR2_RD_WRN); // set write direction
 	I2C1->CR2 &= ~(I2C_CR2_SADD); // clear address
 	I2C1->CR2 |= (slave_addr << 1); // set slave address
 	I2C1->CR2 |= I2C_CR2_AUTOEND; // enable autoend
@@ -117,11 +129,13 @@ void i2c1_send(uint8_t slave_addr, uint8_t* data_ptr) {
 	I2C1->CR2 |= I2C_CR2_START; // start transmition
 }
 
-void i2c1_read(uint8_t slave_addr, uint8_t addr, uint8_t count, uint8_t* data_ptr) {
-	uint8_t dummy[] = {addr, I2C_DELIMITER}; // set dummy array
+void i2c1_read(uint8_t slave_addr, uint8_t addr, uint8_t* data_ptr, uint8_t count) {
+	uint8_t dummy[] = {I2C_DELIMITER}; // set dummy array
 	
-	i2c1_send(slave_addr, dummy); // set register to read from
-	_delay_ms(1);
+	while(i2c1_rx_busy); // check if available
+	i2c1_rx_busy = 1; // set to busy
+	i2c1_send(slave_addr, addr, dummy); // set register to read from
+	while(i2c1_tx_busy); // wait for delivery
 
 	I2C1->CR2 |= I2C_CR2_RD_WRN; // set read direction
 	I2C1->CR2 |= I2C_CR2_AUTOEND; // enable autoend
