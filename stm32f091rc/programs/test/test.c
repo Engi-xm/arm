@@ -1,6 +1,6 @@
 #include <stm32f0xx.h>
 #include <delay.h>
-#include "usart_dma.h"
+#include "i2c_dma.h"
 
 #define LED_ON(led) GPIOB->BSRR |= (1 << led)
 #define LED_OFF(led) GPIOB->BSRR |= ((1 << led) << 16)
@@ -9,12 +9,7 @@
 #define REG_ADDR_1 0x0e
 #define REG_ADDR_2 0x00
 
-volatile uint8_t usart2_rx_busy;
-
 void init_leds(void);
-void init_i2c1(void);
-void i2c1_send(uint8_t slave_addr, uint8_t addr, uint8_t* data_ptr);
-void i2c1_read(uint8_t slave_addr, uint8_t addr, uint8_t* data_ptr, uint8_t count);
 void init_adc(void);
 void read_adc(uint16_t* adc_values);
 void init_tim3(void);
@@ -25,17 +20,16 @@ uint8_t zeroes(uint32_t reg);
 int main() {
 	init_leds();
 	init_delay();
-	init_usart2(9600);
+	init_i2c1();
+	uint8_t rtc_setup[] = {0b00010000};
+	uint8_t read_data[5] = {0};
 
-	uint8_t read_data[3] = {0x67, 0x68};
+	i2c1_send(SLAVE_ADDR, REG_ADDR_1, rtc_setup, 1);
 
 	while(1) {
-		usart2_read(read_data, 2);
-		LED_TOGGLE(5);
-		while(usart2_rx_busy);
-		usart2_send(read_data, 2);
-		_delay_ms(10);
-		LED_TOGGLE(6);
+		_delay_ms(200);
+		i2c1_read(SLAVE_ADDR, REG_ADDR_2, read_data, 1);
+		GPIOB->ODR = (read_data[0] >> 4) * 10 + (read_data[0] & 0x0f);
 	}
 
 	return 0;
