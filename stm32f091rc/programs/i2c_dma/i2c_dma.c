@@ -1,5 +1,5 @@
 #include "stm32f0xx.h"
-#include "usart.h"
+#include "i2c_dma.h"
 
 volatile uint8_t i2c1_rx_busy = 0; // status flag
 volatile uint8_t i2c1_tx_busy = 0; // status flag
@@ -64,7 +64,8 @@ void i2c1_send(uint8_t slave_addr, uint8_t addr, uint8_t* data_ptr, uint8_t coun
 		*(data_ptr + i + 1) = *(data_ptr + i);
 	}
 	*(data_ptr) = addr; // set register address
-
+	count++;
+	
 	I2C1->CR2 &= ~(I2C_CR2_RD_WRN); // set write direction
 	I2C1->CR2 &= ~(I2C_CR2_SADD); // clear address
 	I2C1->CR2 |= (slave_addr << 1); // set slave address
@@ -84,7 +85,7 @@ void i2c1_read(uint8_t slave_addr, uint8_t addr, uint8_t* data_ptr, uint8_t coun
 	
 	while(i2c1_rx_busy); // check if available
 	i2c1_rx_busy = 1; // set to busy
-	i2c1_send(slave_addr, addr, dummy, 1); // set register to read from
+	i2c1_send(slave_addr, addr, dummy, 0); // set register to read from
 	while(i2c1_tx_busy); // wait for delivery
 
 	I2C1->CR2 |= I2C_CR2_RD_WRN; // set read direction
