@@ -23,6 +23,4 @@ Additional files:
 1. Makefile
 2. delay.h
 3. delay.c
-5. usart.h
-6. usart.c
-7. README
+4. README
