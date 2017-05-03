@@ -1,8 +1,11 @@
 #include <stm32f0xx.h>
 #include "usart_dma.h"
 
+// global variables
 volatile uint8_t usart2_rx_busy = 0; // status flag
-volatile uint8_t usart2_tx_busy = 0; // status flag
+
+// private variables
+static volatile uint8_t usart2_tx_busy = 0; // status flag
 
 void DMA1_Ch2_3_DMA2_Ch1_2_IRQHandler(void) {
 	if((DMA2->ISR & DMA_ISR_TCIF1) == DMA_ISR_TCIF1) { // ch1 tc flag
