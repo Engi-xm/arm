@@ -1,9 +1,13 @@
 #include "stm32f0xx.h"
 #include "i2c_dma.h"
 
+// global variables
 volatile uint8_t i2c1_rx_busy = 0; // status flag
-volatile uint8_t i2c1_tx_busy = 0; // status flag
 
+// private variables
+static volatile uint8_t i2c1_tx_busy = 0; // status flag
+
+// interrupt handler
 void DMA1_Ch2_3_DMA2_Ch1_2_IRQHandler(void) {
 	if((DMA1->ISR & DMA_ISR_TCIF2) == DMA_ISR_TCIF2) { // ch2 tc flag
 		i2c1_tx_busy = 0; // set to available
