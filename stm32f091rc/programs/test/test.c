@@ -1,6 +1,5 @@
 #include <stm32f0xx.h>
 #include <delay.h>
-#include "i2c_dma.h"
 
 #define LED_ON(led) GPIOB->BSRR |= (1 << led)
 #define LED_OFF(led) GPIOB->BSRR |= ((1 << led) << 16)
@@ -20,16 +19,22 @@ uint8_t zeroes(uint32_t reg);
 int main() {
 	init_leds();
 	init_delay();
-	init_i2c1();
-	uint8_t rtc_setup[] = {0b00010000};
-	uint8_t read_data[5] = {0};
+	// init_usart2(9600);
+	// init_i2c1();
+	// uint8_t rtc_setup[] = {0b00010000};
+	// uint8_t read_data[5] = {0};
+	// uint8_t data[3] = {'a', 'b', '\0'};
 
-	i2c1_send(SLAVE_ADDR, REG_ADDR_1, rtc_setup, 1);
+	// i2c1_send(SLAVE_ADDR, REG_ADDR_1, rtc_setup, 1);
 
 	while(1) {
-		_delay_ms(200);
-		i2c1_read(SLAVE_ADDR, REG_ADDR_2, read_data, 1);
-		GPIOB->ODR = (read_data[0] >> 4) * 10 + (read_data[0] & 0x0f);
+		_delay_ms(500);
+		// usart2_send(data, 2);
+		LED_TOGGLE(2);
+
+		// _delay_ms(200);
+		// i2c1_read(SLAVE_ADDR, REG_ADDR_2, read_data, 1);
+		// GPIOB->ODR = (read_data[0] >> 4) * 10 + (read_data[0] & 0x0f);
 	}
 
 	return 0;
